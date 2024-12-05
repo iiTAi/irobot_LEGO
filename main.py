@@ -24,7 +24,7 @@ class MotorAndSensor:
         self.ref_center = 0
         self.error_prev = 0
         self.speed = 0
-        self.BASE_SPEED = 22
+        self.BASE_SPEED = 25
 
     def calc_speed(self, option='+'):
         """ モータの速度計算
