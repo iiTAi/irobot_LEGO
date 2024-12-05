@@ -141,6 +141,7 @@ right = MotorAndSensor('B', 'D')
 center = MotorAndSensor('F')
 
 # 開始音の再生
+hub.speaker.set_volume(100)
 hub.speaker.beep(note=60, seconds=1.0)
 
 # タイマの初期化
