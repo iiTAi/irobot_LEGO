@@ -3,17 +3,39 @@ from spike.control import wait_for_seconds, Timer
 from math import *
 
 class MotorAndSensor:
+    """ モータとセンサを制御するクラス """
+
     def __init__(self, sensor, motor=''):
+        """ インスタンスの初期化
+
+        Members:
+            sensor (ColorSensor): カラーセンサのインスタンス
+            motor (str, optional): モータのインスタンス Defaults to ''.
+            ref (int): センサの反射率
+            ref_center (int): 中央センサの反射率
+            error_prev (int): 反射率の目標値との差分の前回値
+            speed (int): モータの速度
+            BASE_SPEED (int): モータの基本速度
+        """
         self.sensor = ColorSensor(sensor)
         if motor != '':
             self.motor = Motor(motor)
         self.ref = 0
         self.ref_center = 0
         self.error_prev = 0
-        self.speed = 0.0
+        self.speed = 0
         self.BASE_SPEED = 22
 
     def calc_speed(self, option='+'):
+        """ モータの速度計算
+
+        比例利得Kp, 微分利得Kdを用いてモータの速度を計算する
+        Kp, Kd, サンプリング周期T, 目標値targetは試行を重ねて調整済
+        重みweightは中央センサの値による重み付けで, 比例利得に掛けられる
+
+        Args:
+            option (str, optional): 回転方向 Defaults to '+'.
+        """
         Kp = 0.24
         Kd = 0.10
         T = 0.050
@@ -32,22 +54,44 @@ class MotorAndSensor:
         self.error_prev = error
 
     def get_color(self):
+        """ 反射率に応じた白黒判定
+
+        Returns:
+            string: 反射率が50未満なら'black', それ以外は'white'を返す
+        """
         if self.ref < 50:
             return 'black'
         else:
             return 'white'
         
     def update_speed(self):
+        """ モータの速度更新 """
         self.motor.start(self.speed)
 
     def update_sensor(self):
+        """ センサの値の更新 """
         self.ref = self.sensor.get_reflected_light()
 
     def update_ref_center(self, ref_c):
+        """ 中央センサの値の更新
+
+        Args:
+            ref_c (int): 中央センサの反射率
+        """
         self.ref_center = ref_c
 
 class TimeChecker:
+    """ タイマを制御するクラス """
     def __init__(self):
+        """_summary_
+
+        Members:
+            timer (Timer): タイマのインスタンス
+            prev (int): 前回のタイマの値(秒)
+            now (int): 現在のタイマの値(秒)
+            stop_counter (int): 停止用カウンタ
+            STOP_LIMIT (int): 停止判定の閾値
+        """
         self.timer = Timer()
         self.prev = 0
         self.now = 0
@@ -55,13 +99,28 @@ class TimeChecker:
         self.STOP_LIMIT = 7
 
     def update(self):
+        """ タイマの更新 """
         self.prev = self.now
         self.now = self.timer.now()
 
     def check_progress(self):
+        """ タイマの進行確認
+
+        Returns:
+            bool: タイマが進んでいればTrue, それ以外はFalseを返す
+        """
         return self.now > self.prev
     
     def check_stop(self, color1, color2):
+        """ 停止判定
+
+        Args:
+            color1 (string): ひとつ目のセンサの色
+            color2 (string): ふたつ目のセンサの色
+
+        Returns:
+            bool: 停止用カウンタがSTOP_LIMITを超えたらTrue, それ以外はFalseを返す
+        """
         if self.check_progress():
             if color1 == 'black' and color2 == 'black':
                 self.stop_counter += 1
@@ -73,19 +132,22 @@ class TimeChecker:
 
 
 #========================================
-# setup
-hub = PrimeHub()
+## setup
+hub = PrimeHub() # ハブのインスタンスの作成
 
+# モータとセンサのインスタンスの作成
 left = MotorAndSensor('A', 'C')
 right = MotorAndSensor('B', 'D')
 center = MotorAndSensor('F')
 
+# 開始音の再生
 hub.speaker.beep(note=60, seconds=1.0)
 
+# タイマの初期化
 tc = TimeChecker()
 
 #========================================
-# main loop
+## main loop
 while True:
     tc.update() # タイマの更新
 
@@ -111,7 +173,7 @@ while True:
     right.update_speed()
 
 #========================================
-# 停止処理
+## 停止処理
 left.motor.stop()
 right.motor.stop()
 
